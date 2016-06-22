@@ -1,0 +1,185 @@
+<!-- ****** XML Para Deploy da Aplicação Superwaba ****** -->
+
+<!-- Mudar o atributo name para o nome do seu projeto, 
+     basedir para o diretório base (anterior ao workspace) -->
+<project name="OlaMundoSW" basedir="C:\Documents and Settings\Junior\" default="all">
+
+	<!-- Propriedades do Projeto, Devem ser modificadas se mudar a 
+	     localização do workspace e/ou o 
+		 nome da mainwindow -->
+
+	<!-- Classe Filha da MainWindow -->
+	<property name="MainWindow" 	value   ="OlaMundoSW"/>
+	
+	<!-- Diretório do WorkSpace -->
+	<property name="workspace"    	location="workspace"/>
+
+
+	<!-- Application classpath -->
+	<path id="classpath">
+		
+		<pathelement location="c:\SuperWabaSDK\lib\SuperWaba.jar"/>
+		<pathelement location="C:\Sun\SDK\jdk\lib\tools.jar"/>
+		<pathelement location="C:\SuperWabaSDK\lib\SuperWabaTools.jar"/>
+
+		<!-- Caso use o Litebase para persistência dos dados de seus aplicativos -->
+		<!-- pathelement location="C:\Litebase/lib/Litebase.jar"/ -->
+		
+	</path>
+	
+	<!-- Warp/Exegen classpath -->
+	<path id="utils">
+		<pathelement path="c:\SuperWabaSDK/utils"/>
+		<pathelement location="c:\SuperWabaSDK/lib/SuperWaba.jar"/>
+	</path>
+	
+	<path id="lib">
+		<pathelement path="c:\SuperWabaSDK/lib"/>
+		<pathelement location="c:\SuperWabaSDK/lib/SuperWabaTools.jar"/>
+		<pathelement location="c:\SuperWabaSDK/lib/SuperWaba.jar"/>
+	</path>
+	
+	<!-- Clean directories and files -->
+	<target name="clean">
+		<delete dir="${workspace}\${ant.project.name}\build"/>
+		<delete dir="${workspace}\${ant.project.name}\dist"/>
+	</target>
+	
+	<!-- Compile -->
+	<target name="build" depends="clean">
+		<mkdir dir="${workspace}\${ant.project.name}\build"/>
+		<mkdir dir="${workspace}\${ant.project.name}\dist"/>
+		<javac srcdir="${workspace}\${ant.project.name}\src" destdir="${workspace}\${ant.project.name}\build" target="1.1">
+			<include name="**/*.java"/>
+			<classpath refid="classpath"/>
+		</javac>
+		<copy todir="${workspace}\${ant.project.name}\build">
+			<fileset dir="${workspace}\${ant.project.name}\src">
+				<exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+	
+	</target>
+	
+	<!-- Package classes -->
+	<target name="jar" depends="build">
+	
+		<jar jarfile="${workspace}\${ant.project.name}\build/${ant.project.name}.jar">
+			<fileset dir="${workspace}\${ant.project.name}\build" includes="**/*.class"/>
+		</jar>
+	
+	</target>
+	
+	<!-- Execute WARP -->
+	<target name="warp" depends="jar">
+	
+		<java dir="${workspace}\${ant.project.name}\build" classname="superwaba.tools.Warp" fork="true" classpathref="lib">
+			<arg value="c"/>
+			<arg value="${ant.project.name}"/>
+			<arg value="${ant.project.name}.jar"/>
+		</java>
+	
+	</target>
+	
+	<!-- Prepare EXEGEN execution -->
+	<target name="prepare-exegen">
+		
+		<mkdir dir="${workspace}\${ant.project.name}\icons"/>
+		<copy todir="${workspace}\${ant.project.name}\build">
+			<fileset dir="${workspace}\${ant.project.name}\icons">
+				<include name="*.bmp"/>
+			</fileset>
+		</copy>
+	
+	</target>
+	
+	<!-- Execute EXEGEN -->
+	<target name="exegen" depends="warp, prepare-exegen">
+	
+		<java dir="${workspace}\${ant.project.name}\build" classname="Exegen" fork="true" classpathref="lib">
+			<arg value="/I"/>
+			<arg value="GuiBuilder_"/>
+			<arg value="/v"/>
+			<arg value="1"/>
+			<arg value="${ant.project.name}"/>
+			<arg value="${MainWindow}"/>
+			<arg value="${ant.project.name}"/>
+		</java>
+	
+	</target>
+	
+	<!-- Execute EXEGEN with WinCE EXE -->
+	<target name="exegen-exe" depends="warp, prepare-exegen">
+	
+		<java dir="${workspace}\${ant.project.name}\build" classname="Exegen" fork="true" classpathref="lib">
+			<arg value="/v"/>
+			<arg value="1"/>
+			<arg value="/e"/>
+			<arg value="${ant.project.name}"/>
+			<arg value="${MainWindow}"/>
+			<arg value="${ant.project.name}"/>
+		</java>
+	
+	</target>
+	
+	<!-- Execute EXEGEN with WinCE CAB -->
+	<target name="exegen-cab" depends="warp, prepare-exegen">
+	
+		<java dir="${workspace}\${ant.project.name}\build" classname="superwaba.tools.Exegen" fork="true" classpathref="lib">
+			<arg value="/v"/>
+			<arg value="1"/>
+			<arg value="/z"/>
+			<arg value="${ant.project.name}"/>
+			<arg value="${MainWindow}"/>
+			<arg value="${ant.project.name}"/>
+		</java>
+	
+	</target>
+	
+	<!-- Execute WARP and populate distribution directory -->
+	<target name="all-warp" depends="warp">
+		
+		<move file="${workspace}\${ant.project.name}\build/${ant.project.name}.pdb" todir="${workspace}\${ant.project.name}\dist"/>
+		
+	</target>
+	
+	<!-- Execute EXEGEN and populate distribution directory -->
+	<target name="all-exegen" depends="exegen, all-warp">
+		
+		<move todir="${workspace}\${ant.project.name}\dist" file="${workspace}\${ant.project.name}\build/${ant.project.name}.prc"/>
+		
+	</target>
+	
+	<!-- Execute EXEGEN with WinCE EXE and populate distribution directory -->
+	<target name="all-exegen-exe" depends="exegen-exe, all-warp">
+		
+		<move todir="${workspace}\${ant.project.name}\dist">
+			
+			<fileset dir="build">
+				<include name="${ant.project.name}.prc"/>
+				<include name="**/*.exe"/>
+			</fileset>
+			
+		</move>
+		
+	</target>
+	
+	<!-- Execute EXEGEN with WinCE CAB and populate distribution directory -->
+	<target name="all-exegen-cab" depends="exegen-cab, all-warp">
+		
+		<move todir="${workspace}\${ant.project.name}\dist">
+			
+			<fileset dir="${workspace}\${ant.project.name}\build">
+				<include name="${ant.project.name}.prc"/>
+				<include name="*.CAB"/>
+				<include name="*.ini"/>
+				<include name="*.bat"/>
+			</fileset>
+			
+		</move>
+		
+	</target>
+	
+	<target name="all" depends="all-exegen-cab"/>
+
+</project>
